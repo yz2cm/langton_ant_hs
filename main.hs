@@ -6,8 +6,6 @@ main = do
         blackPoints = [] :: [Point]
         ant = Ant { antDirection = ToLeft, antPoint = (0, 0) }
         playResult = play ant blackPoints 20000
-        minX = minimum (map (\(x, y) -> x) playResult)
-        maxX = maximum (map (\(x, y) -> x) playResult)
 
     printMap $ blackPointsToStrings playResult
 
