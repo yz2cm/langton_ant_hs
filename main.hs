@@ -3,21 +3,34 @@ import Data.List
 main :: IO ()
 main = do
     let
-        board = [] :: [Point]
+        blackPoints = [] :: [Point]
         ant = Ant { antDirection = ToLeft, antPoint = (0, 0) }
-        playResult = play ant board 20000
+        playResult = play ant blackPoints 20000
+        minX = minimum (map (\(x, y) -> x) playResult)
+        maxX = maximum (map (\(x, y) -> x) playResult)
 
-    printMap $ boardToStrings playResult
+    printMap $ blackPointsToStrings playResult
 
 play :: Ant -> [Point] -> Int -> [Point]
-play _   board 0 = board
-play ant board step = 
-    play antMoved boardUpdated (step - 1)
+play _   blackPoints 0 = blackPoints
+play ant blackPoints step = 
+    play antMoved blackPointsUpdated (step - 1)
     where
-        color = cellColorOf board (antPoint ant)
+        color = cellColorOf blackPoints (antPoint ant)
         antRotated = rotateAnt color ant
-        boardUpdated = updateBoardByAnt board antRotated
+        blackPointsUpdated = updateBlackPointsByAnt blackPoints antRotated
         antMoved = moveForwardAnt antRotated
+
+-- splitByLen
+-- リストを指定の長さ単位で分割する。
+-- ex) splitByLen 3 "abcdefgh" => ["abc", "def", "gh"]
+splitByLen :: Int -> [elem_t] -> [[elem_t]]
+splitByLen _ [] = []
+splitByLen length xs = chunk:(splitByLen length remains)
+    where
+        chunk = take length xs
+        remains = drop length xs
+
 -- printMap
 -- リストの各要素をプリントする。
 printMap :: (Show elem_t) => [elem_t] -> IO ()
@@ -26,55 +39,33 @@ printMap (x:xs) = do
     print $ x
     printMap xs
 
--- boardToStrings
--- (x,y)のリスト（Blackの座標のみ）を画面表示用の文字列に変換する。
-boardToStrings :: [Point] -> [String]
-boardToStrings board = toFullBoardWithSymbol boardWithColor
+-- blackPointsToStrings
+-- Blackの座標リストを画面表示用の文字列に変換する。
+blackPointsToStrings :: [Point] -> [String]
+blackPointsToStrings blackPoints = lines
     where
-        boardFull = boardToFullBoard board
-        boardWithColor = toFullBoardWithColor board boardFull
-
--- toFullBoardWithSymbol
--- 各行のセル色並びを画面表示用のシンボル列に変換する。
-toFullBoardWithSymbol :: [[CellColor]] -> [String]
-toFullBoardWithSymbol [] = []
-toFullBoardWithSymbol boardWithColor = map colorsToSymbols boardWithColor
-    where
-        colorsToSymbols = \colors -> map cellColorToSymbol colors
-
--- toFullBoardWithColor
--- (x,y)のリスト（Black/Whiteの座標）の各座標をセル色に変換する。
-toFullBoardWithColor :: [Point] -> [Point] -> [[CellColor]]
-toFullBoardWithColor [] _ = []
-toFullBoardWithColor _ [] = []
-toFullBoardWithColor board boardFull = map pointsToColors boardGroupByY
-    where
-        boardGroupByY = groupByY boardFull
-        pointsToColors = \points -> map pointToColor points
-        pointToColor = \point -> cellColorOf board point
-
--- toFullBoardWithColor
--- リスト（Blackの座標のみ）を、AにWhiteの座標を補完したリストに変換する。
--- ex) リスト[(-1,1),(1,-1)]は、リスト[(x, y) | x <- [-1,0,1], y <- [-1,0,1]]に変換される。
-boardToFullBoard :: [Point] -> [Point]
-boardToFullBoard [] = []
-boardToFullBoard board = [(x, y) | x <- [minX..maxX], y <- [minY..maxY]]
-    where
-        xs = map (\(x, y) -> x) board
-        ys = map (\(x, y) -> y) board
+        lines = splitByLen width symbols :: [String]
+        symbols = map cellColorToSymbol colors :: [Char]
+        colors = map (cellColorOf blackPoints) matrix :: [CellColor]
+        matrix = buildMatrix blackPoints :: [Point]
+        width = maxX - minX + 1
         minX = minimum xs
         maxX = maximum xs
-        minY = minimum ys
-        maxY = maximum ys
+        xs = map (\(x, y) -> x) blackPoints
 
--- groupByY
--- [(x,y)](x,y)のyでグループ化した座標グループのリストを作成する。
--- ex) [(1,1),(1,2),(2,1),(2,2)]は、[[(1,1),(2,1)],[(1,2),(2,2)]]に変換される。
-groupByY :: [Point] -> [[Point]]
-groupByY board = map yToPoint ys
+-- buildMatrix
+-- Blackの座標を包含する最小の四角形のマトリクスを返す。
+buildMatrix :: [Point] -> [Point]
+buildMatrix [] = []
+buildMatrix blackPoints = buildMatrix' (minX, maxX) (minY, maxY)
     where
-        ys = nub $ map (\(_, y) -> y) board
-        yToPoint = \y -> filter (\(_x, _y) -> _y == y) board
+        minX = minimum $ map (\(x, y) -> x) blackPoints
+        maxX = maximum $ map (\(x, y) -> x) blackPoints
+        minY = minimum $ map (\(x, y) -> y) blackPoints
+        maxY = maximum $ map (\(x, y) -> y) blackPoints
+
+buildMatrix' :: (Int, Int) -> (Int, Int) -> [Point]
+buildMatrix' (minX, maxX) (minY, maxY) = [(x, y) | y <- [minY..maxY], x <- [minX..maxX]]
 
 -- rotateAnt
 -- セルの色に応じて、アリを左90°または右90°に方向転換する。
@@ -96,23 +87,23 @@ moveForwardAnt (Ant ToRight (x, y)) = Ant { antDirection = ToRight, antPoint = (
 moveForwardAnt (Ant ToDown  (x, y)) = Ant { antDirection = ToDown,  antPoint = (x,     y + 1) }
 moveForwardAnt (Ant ToLeft  (x, y)) = Ant { antDirection = ToLeft,  antPoint = (x - 1, y)     }
 
--- moveForwardAnt
+-- reverseCell
 -- 現在のセル色を反転後のセル色を返す。
 reverseCell :: CellColor -> CellColor
 reverseCell White = Black
 reverseCell Black = White
 
--- updateBoardByAnt
--- アリの現在地のマスの背景色を反転させた座標リストを返す
-updateBoardByAnt :: [Point] -> Ant -> [Point]
-updateBoardByAnt board ant = updateBoardByPoint board (antPoint ant)
+-- updateBlackPointsByAnt
+-- アリの現在地のマスの背景色を反転させた座標リストを返す。
+updateBlackPointsByAnt :: [Point] -> Ant -> [Point]
+updateBlackPointsByAnt blackPoints ant = updateBlackPointsByPoint blackPoints (antPoint ant)
 
--- updateBoardByPoint
--- 指定座標のマスの背景色を反転させた座標リストを返す
-updateBoardByPoint :: [Point] -> Point -> [Point]
-updateBoardByPoint board point
-    | elem point board = removeItem point board
-    | otherwise = addItem point board
+-- updateBlackPointsByPoint
+-- 指定座標のマスの背景色を反転させた座標リストを返す。
+updateBlackPointsByPoint :: [Point] -> Point -> [Point]
+updateBlackPointsByPoint blackPoints point
+    | elem point blackPoints = removeItem point blackPoints
+    | otherwise = addItem point blackPoints
 
 -- cellColorToSymbol
 -- セルの背景色に対応する画面表示用のシンボルを返す。
@@ -124,8 +115,8 @@ cellColorToSymbol Black = 'X'
 -- 指定座標のマスの色を取得する。
 cellColorOf :: [Point] -> Point -> CellColor
 cellColorOf [] _ = White
-cellColorOf board point
-    | elem point board = Black
+cellColorOf blackPoints point
+    | elem point blackPoints = Black
     | otherwise = White
 
 -- addItem
