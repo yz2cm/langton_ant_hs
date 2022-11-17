@@ -47,10 +47,10 @@ buildMatrix :: [Point] -> [Point]
 buildMatrix [] = []
 buildMatrix blackPoints = buildMatrix' (minX, maxX) (minY, maxY)
     where
-        minX = minimum $ map (\(x, y) -> x) blackPoints
-        maxX = maximum $ map (\(x, y) -> x) blackPoints
-        minY = minimum $ map (\(x, y) -> y) blackPoints
-        maxY = maximum $ map (\(x, y) -> y) blackPoints
+        minX = minimum $ map (\(x, _) -> x) blackPoints
+        maxX = maximum $ map (\(x, _) -> x) blackPoints
+        minY = minimum $ map (\(_, y) -> y) blackPoints
+        maxY = maximum $ map (\(_, y) -> y) blackPoints
 
 buildMatrix' :: (Int, Int) -> (Int, Int) -> [Point]
 buildMatrix' (minX, maxX) (minY, maxY) = [(x, y) | y <- [minY..maxY], x <- [minX..maxX]]
