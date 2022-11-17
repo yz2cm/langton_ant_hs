@@ -32,48 +32,63 @@ splitByLen length xs = chunk:(splitByLen length remains)
 blackPointsToStrings :: [Point] -> [String]
 blackPointsToStrings blackPoints = lines
     where
-        lines = splitByLen width symbols :: [String]
-        symbols = map toSymbol colors :: [Char]
-        colors = map (toCellColor blackPoints) matrix :: [CellColor]
         matrix = buildMatrix blackPoints :: [Point]
+        colors = map (toCellColor blackPoints) matrix :: [CellColor]
+        symbols = map toSymbol colors :: [Char]
+        lines = splitByLen width symbols :: [String]
         width = maxX - minX + 1
         minX = minimum xs
         maxX = maximum xs
         xs = map (\(x, y) -> x) blackPoints
 
 -- buildMatrix
--- Blackの座標を包含する最小の四角形のマトリクスを返す。
+-- Blackの座標を包含する最小面積の四角形のマトリクスを返す。
 buildMatrix :: [Point] -> [Point]
 buildMatrix [] = []
 buildMatrix blackPoints = buildMatrix' (minX, maxX) (minY, maxY)
     where
-        minX = minimum $ map (\(x, _) -> x) blackPoints
-        maxX = maximum $ map (\(x, _) -> x) blackPoints
-        minY = minimum $ map (\(_, y) -> y) blackPoints
-        maxY = maximum $ map (\(_, y) -> y) blackPoints
-
-buildMatrix' :: (Int, Int) -> (Int, Int) -> [Point]
-buildMatrix' (minX, maxX) (minY, maxY) = [(x, y) | y <- [minY..maxY], x <- [minX..maxX]]
+        minX = minimum xs
+        maxX = maximum xs
+        minY = minimum ys
+        maxY = maximum ys
+        xs = map (\(x, _) -> x) blackPoints
+        ys = map (\(_, y) -> y) blackPoints
+        buildMatrix' :: (Int, Int) -> (Int, Int) -> [Point]
+        buildMatrix' (minX, maxX) (minY, maxY) = [(x, y) | y <- [minY..maxY], x <- [minX..maxX]]
 
 -- rotateAnt
 -- セルの色に応じて、アリを左90°または右90°に方向転換する。
 rotateAnt :: CellColor -> Ant -> Ant
-rotateAnt White (Ant ToUp    point) = Ant { antDirection = ToRight, antPoint = point }
-rotateAnt White (Ant ToRight point) = Ant { antDirection = ToDown,  antPoint = point }
-rotateAnt White (Ant ToDown  point) = Ant { antDirection = ToLeft,  antPoint = point }
-rotateAnt White (Ant ToLeft  point) = Ant { antDirection = ToUp,    antPoint = point }
-rotateAnt Black (Ant ToUp    point) = Ant { antDirection = ToLeft,  antPoint = point }
-rotateAnt Black (Ant ToRight point) = Ant { antDirection = ToUp,    antPoint = point }
-rotateAnt Black (Ant ToDown  point) = Ant { antDirection = ToRight, antPoint = point }
-rotateAnt Black (Ant ToLeft  point) = Ant { antDirection = ToDown,  antPoint = point }
+rotateAnt color (Ant direction point) =
+    Ant {
+        antDirection = (rotate color direction),
+        antPoint = point
+    }
+    where
+        rotate :: CellColor -> Direction -> Direction
+        rotate White ToUp    = ToRight
+        rotate White ToRight = ToDown
+        rotate White ToDown  = ToLeft
+        rotate White ToLeft  = ToUp
+        rotate Black ToUp    = ToLeft
+        rotate Black ToRight = ToUp
+        rotate Black ToDown  = ToRight
+        rotate Black ToLeft  = ToDown
 
 -- moveForwardAnt
 -- アリが向いている方向に、アリを1マス前進させる。
 moveForwardAnt :: Ant -> Ant
-moveForwardAnt (Ant ToUp    (x, y)) = Ant { antDirection = ToUp,    antPoint = (x,     y - 1) }
-moveForwardAnt (Ant ToRight (x, y)) = Ant { antDirection = ToRight, antPoint = (x + 1, y)     }
-moveForwardAnt (Ant ToDown  (x, y)) = Ant { antDirection = ToDown,  antPoint = (x,     y + 1) }
-moveForwardAnt (Ant ToLeft  (x, y)) = Ant { antDirection = ToLeft,  antPoint = (x - 1, y)     }
+moveForwardAnt (Ant direction  point) =
+    Ant {
+        antDirection = direction,
+        antPoint = (moveForward direction point)
+    }
+    where
+        moveForward :: Direction -> Point -> Point
+        moveForward ToUp    (x, y) = (x,   y-1)
+        moveForward ToRight (x, y) = (x+1, y)
+        moveForward ToDown  (x, y) = (x,   y+1)
+        moveForward ToLeft  (x, y) = (x-1, y)
 
 -- reverseCell
 -- 現在のセル色を反転後のセル色を返す。
