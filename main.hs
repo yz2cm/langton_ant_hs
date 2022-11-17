@@ -14,7 +14,7 @@ play _   blackPoints 0 = blackPoints
 play ant blackPoints step = 
     play antMoved blackPointsUpdated (step - 1)
     where
-        color = cellColorOf blackPoints (antPoint ant)
+        color = toCellColor blackPoints (antPoint ant)
         antRotated = rotateAnt color ant
         blackPointsUpdated = updateBlackPointsByAnt blackPoints antRotated
         antMoved = moveForwardAnt antRotated
@@ -43,8 +43,8 @@ blackPointsToStrings :: [Point] -> [String]
 blackPointsToStrings blackPoints = lines
     where
         lines = splitByLen width symbols :: [String]
-        symbols = map cellColorToSymbol colors :: [Char]
-        colors = map (cellColorOf blackPoints) matrix :: [CellColor]
+        symbols = map toSymbol colors :: [Char]
+        colors = map (toCellColor blackPoints) matrix :: [CellColor]
         matrix = buildMatrix blackPoints :: [Point]
         width = maxX - minX + 1
         minX = minimum xs
@@ -103,17 +103,17 @@ updateBlackPointsByPoint blackPoints point
     | elem point blackPoints = removeItem point blackPoints
     | otherwise = addItem point blackPoints
 
--- cellColorToSymbol
+-- toSymbol
 -- セルの背景色に対応する画面表示用のシンボルを返す。
-cellColorToSymbol :: CellColor -> Char
-cellColorToSymbol White = '_'
-cellColorToSymbol Black = 'X'
+toSymbol :: CellColor -> Char
+toSymbol White = '_'
+toSymbol Black = 'X'
 
--- cellColorOf
+-- toCellColor
 -- 指定座標のマスの色を取得する。
-cellColorOf :: [Point] -> Point -> CellColor
-cellColorOf [] _ = White
-cellColorOf blackPoints point
+toCellColor :: [Point] -> Point -> CellColor
+toCellColor [] _ = White
+toCellColor blackPoints point
     | elem point blackPoints = Black
     | otherwise = White
 
