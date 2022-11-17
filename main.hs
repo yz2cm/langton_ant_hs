@@ -5,7 +5,7 @@ main = do
         ant = Ant { antDirection = ToLeft, antPoint = (0, 0) }
         playResult = play ant blackPoints 20000
 
-    printMap $ blackPointsToStrings playResult
+    mapM_ print $ blackPointsToStrings playResult
 
 play :: Ant -> [Point] -> Int -> [Point]
 play _   blackPoints 0 = blackPoints
@@ -26,14 +26,6 @@ splitByLen length xs = chunk:(splitByLen length remains)
     where
         chunk = take length xs
         remains = drop length xs
-
--- printMap
--- リストの各要素をプリントする。
-printMap :: (Show elem_t) => [elem_t] -> IO ()
-printMap [] = return ()
-printMap (x:xs) = do
-    print $ x
-    printMap xs
 
 -- blackPointsToStrings
 -- Blackの座標リストを画面表示用の文字列に変換する。
