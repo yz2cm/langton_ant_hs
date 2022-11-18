@@ -1,3 +1,5 @@
+import Data.List (delete)
+
 main :: IO ()
 main = do
     let
@@ -33,9 +35,9 @@ blackPointsToStrings :: [Point] -> [String]
 blackPointsToStrings blackPoints = lines
     where
         matrix = buildMatrix blackPoints :: [Point]
-        colors = map (toCellColor blackPoints) matrix :: [CellColor]
-        symbols = map toSymbol colors :: [Char]
+        symbols = map cellToSymbol matrix :: [Char]
         lines = splitByLen width symbols :: [String]
+        cellToSymbol = toSymbol . toCellColor blackPoints
         width = maxX - minX + 1
         minX = minimum xs
         maxX = maximum xs
@@ -45,7 +47,7 @@ blackPointsToStrings blackPoints = lines
 -- Blackの座標を包含する最小面積の四角形のマトリクスを返す。
 buildMatrix :: [Point] -> [Point]
 buildMatrix [] = []
-buildMatrix blackPoints = buildMatrix' (minX, maxX) (minY, maxY)
+buildMatrix blackPoints = [(x, y) | y <- [minY..maxY], x <- [minX..maxX]]
     where
         minX = minimum xs
         maxX = maximum xs
@@ -53,8 +55,6 @@ buildMatrix blackPoints = buildMatrix' (minX, maxX) (minY, maxY)
         maxY = maximum ys
         xs = map (\(x, _) -> x) blackPoints
         ys = map (\(_, y) -> y) blackPoints
-        buildMatrix' :: (Int, Int) -> (Int, Int) -> [Point]
-        buildMatrix' (minX, maxX) (minY, maxY) = [(x, y) | y <- [minY..maxY], x <- [minX..maxX]]
 
 -- rotateAnt
 -- セルの色に応じて、アリを左90°または右90°に方向転換する。
@@ -90,12 +90,6 @@ moveForwardAnt (Ant direction  point) =
         moveForward ToDown  (x, y) = (x,   y+1)
         moveForward ToLeft  (x, y) = (x-1, y)
 
--- reverseCell
--- 現在のセル色を反転後のセル色を返す。
-reverseCell :: CellColor -> CellColor
-reverseCell White = Black
-reverseCell Black = White
-
 -- updateBlackPointsByAnt
 -- アリの現在地のマスの背景色を反転させた座標リストを返す。
 updateBlackPointsByAnt :: [Point] -> Ant -> [Point]
@@ -103,10 +97,11 @@ updateBlackPointsByAnt blackPoints ant = updateBlackPointsByPoint blackPoints (a
 
 -- updateBlackPointsByPoint
 -- 指定座標のマスの背景色を反転させた座標リストを返す。
+-- 「マスの背景色を反転させる」とは、実装上は、Blackの座標リストから当該座標を削除するか、リストに追加することを示す。
 updateBlackPointsByPoint :: [Point] -> Point -> [Point]
 updateBlackPointsByPoint blackPoints point
-    | elem point blackPoints = removeItem point blackPoints
-    | otherwise = addItem point blackPoints
+    | elem point blackPoints = Data.List.delete point blackPoints
+    | otherwise = point:blackPoints
 
 -- toSymbol
 -- セルの背景色に対応する画面表示用のシンボルを返す。
@@ -121,20 +116,6 @@ toCellColor [] _ = White
 toCellColor blackPoints point
     | elem point blackPoints = Black
     | otherwise = White
-
--- addItem
--- リスト末尾に要素を追加したリストを返す
-addItem :: elem_t -> [elem_t] -> [elem_t]
-addItem x ys = x:ys
-
--- removeItem
--- 指定の要素と一致する要素を削除したリストを返す。
--- 一致要素が複数存在する場合、もっともインデックスの小さい要素のみを削除したリストを返す。
-removeItem :: (Eq elem_t) => elem_t -> [elem_t] -> [elem_t]
-removeItem _ []     = []
-removeItem x (y:ys)
-    | x == y = ys
-    | otherwise = y: removeItem x ys
 
 type Point = (Int, Int)
 
